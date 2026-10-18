@@ -3,8 +3,34 @@
 
 import sys
 from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 from base_fournie import reconfort_io as rio
+
+
+Emotion = Tuple[str, str]
+
+
+def indexer_dictionnaire(dictionnaire: dict) -> Dict[str, Emotion]:
+    """Associe chaque forme connue a son emotion et son intensite."""
+    index: Dict[str, Emotion] = {}
+    for entree in dictionnaire["entrees"]:
+        emotion = entree["emotion"]
+        intensite = entree["intensite"]
+        for forme in entree["formes"]:
+            index[forme] = (emotion, intensite)
+    return index
+
+
+def lire_emotion(
+    message: str,
+    index_dictionnaire: Dict[str, Emotion],
+) -> Optional[Emotion]:
+    """Retourne l'emotion du premier mot reconnu, sinon None."""
+    for mot in rio.normaliser(message):
+        if mot in index_dictionnaire:
+            return index_dictionnaire[mot]
+    return None
 
 
 def main(argv: list[str]) -> int:
