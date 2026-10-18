@@ -1,0 +1,2 @@
+# Aucune dependance Python externe.
+# Le projet utilise uniquement la bibliotheque standard de Python 3.9+.
