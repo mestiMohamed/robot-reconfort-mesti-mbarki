@@ -43,8 +43,24 @@ python3 agent.py \
   sortie.json
 ```
 
+## Tester
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+## Organisation actuelle
+
+| Fichier | Rôle |
+|---|---|
+| `agent.py` | point d'entrée et premier traitement du dictionnaire |
+| `environnement.py` | état réel de la carte et perceptions locales |
+| `base_fournie/reconfort_io.py` | lecture des entrées et écriture de la trace |
+| `tests/test_agent.py` | tests automatisés des fonctionnalités disponibles |
+
 ## État actuel
 
 Le point d'entrée charge les fichiers du projet et produit une première
-trace minimale. Le comportement autonome du robot est en cours de
-développement.
+trace minimale. L'environnement sait maintenant fournir les quatre
+perceptions locales sans exposer la grille complète à l'agent. Le
+comportement autonome du robot est en cours de développement.

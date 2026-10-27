@@ -3,6 +3,49 @@ from pathlib import Path
 
 from agent import indexer_dictionnaire, lire_emotion
 from base_fournie import reconfort_io as rio
+from environnement import Environnement
+
+
+class TestPerception(unittest.TestCase):
+    def test_perception_au_depart_de_la_carte_fournie(self) -> None:
+        chemin = (
+            Path(__file__).resolve().parents[1]
+            / "base_fournie"
+            / "cartes"
+            / "appartement_01.json"
+        )
+        carte = rio.charger_carte(chemin)
+
+        environnement = Environnement(carte)
+
+        self.assertEqual(environnement.position_robot, (6, 1))
+        self.assertEqual(
+            environnement.percevoir(),
+            {"N": "libre", "S": "libre", "E": "libre", "O": "mur"},
+        )
+
+    def test_perception_des_elements_non_traversables(self) -> None:
+        carte = {
+            "grille": [
+                "#####",
+                "#PRD#",
+                "#.A.#",
+                "#####",
+            ],
+            "depart_robot": [1, 2],
+        }
+
+        environnement = Environnement(carte)
+
+        self.assertEqual(
+            environnement.percevoir(),
+            {
+                "N": "mur",
+                "S": "armoire",
+                "E": "dictionnaire",
+                "O": "resident",
+            },
+        )
 
 
 class TestLectureEmotion(unittest.TestCase):
