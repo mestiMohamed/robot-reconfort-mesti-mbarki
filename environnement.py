@@ -11,6 +11,10 @@ from typing import Dict, Tuple
 Position = Tuple[int, int]
 
 
+class ActionImpossible(Exception):
+    """Action refusee parce que les conditions ne sont pas reunies."""
+
+
 class Environnement:
     """Conserve l'etat reel et produit les perceptions du robot."""
 
@@ -41,11 +45,33 @@ class Environnement:
 
     def percevoir(self) -> Dict[str, str]:
         """Retourne uniquement le type des quatre cases adjacentes."""
-        ligne, colonne = self._position_robot
         perception: Dict[str, str] = {}
 
-        for direction, (delta_ligne, delta_colonne) in self._DEPLACEMENTS.items():
-            symbole = self._grille[ligne + delta_ligne][colonne + delta_colonne]
+        for direction in self._DEPLACEMENTS:
+            ligne, colonne = self._position_voisine(direction)
+            symbole = self._grille[ligne][colonne]
             perception[direction] = self._TYPES_CASE[symbole]
 
         return perception
+
+    def avancer(self, direction: str) -> None:
+        """Deplace le robot d'une case si la destination est libre."""
+        ligne, colonne = self._position_voisine(direction)
+        symbole = self._grille[ligne][colonne]
+
+        if self._TYPES_CASE[symbole] != "libre":
+            raise ActionImpossible(
+                f"deplacement impossible vers {direction} : "
+                f"case {self._TYPES_CASE[symbole]}"
+            )
+
+        self._position_robot = (ligne, colonne)
+
+    def _position_voisine(self, direction: str) -> Position:
+        """Calcule la position voisine dans une direction valide."""
+        if direction not in self._DEPLACEMENTS:
+            raise ValueError(f"direction inconnue : {direction!r}")
+
+        ligne, colonne = self._position_robot
+        delta_ligne, delta_colonne = self._DEPLACEMENTS[direction]
+        return ligne + delta_ligne, colonne + delta_colonne

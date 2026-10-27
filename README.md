@@ -62,5 +62,6 @@ python3 -m unittest discover -s tests -v
 
 Le point d'entrée charge les fichiers du projet et produit une première
 trace minimale. L'environnement sait maintenant fournir les quatre
-perceptions locales sans exposer la grille complète à l'agent. Le
-comportement autonome du robot est en cours de développement.
+perceptions locales sans exposer la grille complète à l'agent. Il peut aussi
+exécuter un déplacement vers une case libre et refuse les déplacements
+illégaux. Le comportement autonome du robot est en cours de développement.

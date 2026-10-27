@@ -3,7 +3,7 @@ from pathlib import Path
 
 from agent import indexer_dictionnaire, lire_emotion
 from base_fournie import reconfort_io as rio
-from environnement import Environnement
+from environnement import ActionImpossible, Environnement
 
 
 class TestPerception(unittest.TestCase):
@@ -46,6 +46,59 @@ class TestPerception(unittest.TestCase):
                 "O": "resident",
             },
         )
+
+
+class TestDeplacement(unittest.TestCase):
+    def test_avancer_vers_une_case_libre(self) -> None:
+        carte = {
+            "grille": [
+                "#####",
+                "#R..#",
+                "#####",
+            ],
+            "depart_robot": [1, 1],
+        }
+        environnement = Environnement(carte)
+
+        environnement.avancer("E")
+
+        self.assertEqual(environnement.position_robot, (1, 2))
+
+    def test_refuser_les_cases_non_traversables(self) -> None:
+        carte = {
+            "grille": [
+                "#####",
+                "#PRD#",
+                "#.A.#",
+                "#####",
+            ],
+            "depart_robot": [1, 2],
+        }
+
+        for direction in ("N", "S", "E", "O"):
+            with self.subTest(direction=direction):
+                environnement = Environnement(carte)
+
+                with self.assertRaises(ActionImpossible):
+                    environnement.avancer(direction)
+
+                self.assertEqual(environnement.position_robot, (1, 2))
+
+    def test_refuser_une_direction_inconnue(self) -> None:
+        carte = {
+            "grille": [
+                "#####",
+                "#R..#",
+                "#####",
+            ],
+            "depart_robot": [1, 1],
+        }
+        environnement = Environnement(carte)
+
+        with self.assertRaisesRegex(ValueError, "direction inconnue"):
+            environnement.avancer("NE")
+
+        self.assertEqual(environnement.position_robot, (1, 1))
 
 
 class TestLectureEmotion(unittest.TestCase):
