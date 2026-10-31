@@ -64,6 +64,7 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 | `agent.py` | point d'entrée, navigation et consultation du dictionnaire |
 | `environnement.py` | validation, état réel, perceptions et déplacements |
 | `navigation.py` | carte mentale, BFS et replanification |
+| `armoire.py` | ordre des candidats, replis et trajets du sélecteur |
 | `validation.py` | validation et cohérence des quatre entrées JSON |
 | `demo_navigation.py` | démonstration autonome de la navigation |
 | `base_fournie/reconfort_io.py` | lecture des entrées et écriture de la trace |
@@ -72,8 +73,9 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 ## État actuel
 
 Le point d'entrée valide les quatre fichiers, construit l'environnement et
-traite les demandes dans l'ordre. Le robot rejoint réellement le dictionnaire,
-journalise chaque déplacement et exécute `CONSULTER`. La navigation locale
-fonctionne sur les cinq cartes fournies : le robot construit une carte mentale,
-calcule un chemin avec un parcours en largeur et replanifie lorsqu'il découvre
-un mur. La fouille de l'armoire et la livraison restent à intégrer.
+traite les demandes dans l'ordre. Le robot rejoint le dictionnaire, consulte
+le message, fouille l'armoire selon l'ordre de repli imposé, prend un objet et
+le livre au résident. Chaque action et chaque perception sont journalisées.
+La navigation locale fonctionne sur les cinq cartes fournies : le robot
+construit une carte mentale, calcule un chemin avec un parcours en largeur et
+replanifie lorsqu'il découvre un mur.

@@ -158,16 +158,34 @@ class Environnement:
         "P": "resident",
     }
 
-    def __init__(self, carte: dict) -> None:
+    def __init__(self, carte: dict, armoire: dict = None) -> None:
         valider_carte(carte)
         self._carte = deepcopy(carte)
         self._grille = tuple(carte["grille"])
         self._position_robot: Position = tuple(carte["depart_robot"])
+        self._armoire = deepcopy(armoire) if armoire is not None else None
+        self._casiers = {}
+        self._casier_courant = None
+        if self._armoire is not None:
+            self._casier_courant = tuple(self._armoire["casier_depart"])
+            self._casiers = {
+                (casier["ligne"], casier["colonne"]): casier["objet"]
+                for casier in self._armoire["casiers"]
+            }
+        self._objet_transporte = None
 
     @property
     def position_robot(self) -> Position:
         """Retourne la position réelle courante du robot."""
         return self._position_robot
+
+    @property
+    def casier_courant(self):
+        return self._casier_courant
+
+    @property
+    def objet_transporte(self):
+        return self._objet_transporte
 
     def informations_initiales(self) -> dict:
         """Retourne les connaissances initiales autorisées, sans la grille."""
@@ -179,6 +197,25 @@ class Environnement:
             "residents",
         )
         return deepcopy({champ: self._carte[champ] for champ in champs})
+
+    def informations_armoire(self) -> dict:
+        """Retourne les étiquettes de l'armoire sans aucun contenu."""
+        if self._armoire is None:
+            raise ValueError("aucune armoire chargée")
+        return {
+            "emotions": list(self._armoire["emotions"]),
+            "intensites": list(self._armoire["intensites"]),
+            "casier_depart": list(self._armoire["casier_depart"]),
+            "casiers": [
+                {
+                    "ligne": casier["ligne"],
+                    "colonne": casier["colonne"],
+                    "emotion": casier["emotion"],
+                    "intensite": casier["intensite"],
+                }
+                for casier in self._armoire["casiers"]
+            ],
+        }
 
     def percevoir(self) -> Dict[str, str]:
         """Retourne uniquement le type des quatre cases adjacentes."""
@@ -208,6 +245,68 @@ class Environnement:
                 "consultation impossible : le robot n'est pas adjacent "
                 "au dictionnaire"
             )
+
+    def contenu_casier(self):
+        """Révèle le contenu courant uniquement devant l'armoire."""
+        self._verifier_adjacence("armoire")
+        return self._casiers[self._casier_courant]
+
+    def chercher(self, direction: str):
+        """Déplace le sélecteur d'un casier selon les règles cycliques."""
+        self._verifier_adjacence("armoire")
+        if direction not in self._DEPLACEMENTS:
+            raise ValueError(f"direction inconnue : {direction!r}")
+        ligne, colonne = self._casier_courant
+        if direction == "N":
+            if ligne == 0:
+                raise ActionImpossible("le sélecteur ne peut pas monter")
+            ligne -= 1
+        elif direction == "S":
+            if ligne == 2:
+                raise ActionImpossible("le sélecteur ne peut pas descendre")
+            ligne += 1
+        elif direction == "E":
+            colonne = (colonne + 1) % 8
+        else:
+            colonne = (colonne - 1) % 8
+        self._casier_courant = (ligne, colonne)
+        return self._casier_courant
+
+    def prendre(self, objet: str) -> None:
+        """Prend l'objet visible dans le casier courant."""
+        self._verifier_adjacence("armoire")
+        if self._objet_transporte is not None:
+            raise ActionImpossible("le robot transporte déjà un objet")
+        contenu = self._casiers[self._casier_courant]
+        if contenu is None or contenu != objet:
+            raise ActionImpossible("objet absent du casier courant")
+        self._casiers[self._casier_courant] = None
+        self._objet_transporte = objet
+
+    def donner(self, objet: str, position_resident) -> None:
+        """Donne l'objet transporté au résident adjacent demandé."""
+        position_resident = tuple(position_resident)
+        if not self._est_adjacent(position_resident):
+            raise ActionImpossible("le résident demandé n'est pas adjacent")
+        ligne, colonne = position_resident
+        if self._grille[ligne][colonne] != "P":
+            raise ActionImpossible("la cible n'est pas un résident")
+        if self._objet_transporte != objet:
+            raise ActionImpossible("le robot ne transporte pas cet objet")
+        self._objet_transporte = None
+
+    def _verifier_adjacence(self, type_case: str) -> None:
+        if type_case not in self.percevoir().values():
+            raise ActionImpossible(
+                f"action impossible : aucune case {type_case} adjacente"
+            )
+
+    def _est_adjacent(self, position) -> bool:
+        return (
+            abs(self._position_robot[0] - position[0])
+            + abs(self._position_robot[1] - position[1])
+            == 1
+        )
 
     def _position_voisine(self, direction: str) -> Position:
         """Calcule la position voisine dans une direction valide."""

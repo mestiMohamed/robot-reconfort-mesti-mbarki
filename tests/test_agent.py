@@ -245,6 +245,53 @@ class TestIntegrationDictionnaire(unittest.TestCase):
             [livraison["emotion"] for livraison in trace["livraisons"]],
             ["tristesse", "peur", "colere", "joie"],
         )
+        self.assertTrue(
+            all(livraison["succes"] for livraison in trace["livraisons"])
+        )
+        self.assertEqual(
+            [livraison["objet"] for livraison in trace["livraisons"]],
+            ["couverture", "veilleuse", "balle antistress", "photo de famille"],
+        )
+        actions = {pas["action"] for pas in trace["pas"]}
+        self.assertTrue(
+            {"AVANCER", "CONSULTER", "CHERCHER", "PRENDRE", "DONNER"}
+            <= actions
+        )
+
+    def test_cinq_scenarios_fournis_sans_erreur(self) -> None:
+        racine = Path(__file__).resolve().parents[1]
+        base = racine / "base_fournie"
+        with TemporaryDirectory(dir=racine / "tests") as dossier:
+            dossier = Path(dossier)
+            for numero in range(1, 6):
+                suffixe = f"{numero:02d}"
+                with self.subTest(scenario=suffixe):
+                    sortie = dossier / f"trace_{suffixe}.json"
+                    code = main(
+                        [
+                            "agent.py",
+                            str(base / "cartes" / f"appartement_{suffixe}.json"),
+                            str(base / "cartes" / f"scenario_{suffixe}.json"),
+                            str(base / "donnees"),
+                            str(sortie),
+                        ]
+                    )
+                    trace = json.loads(sortie.read_text(encoding="utf-8"))
+                    scenario = rio.charger_scenario(
+                        base / "cartes" / f"scenario_{suffixe}.json"
+                    )
+                    self.assertEqual(code, 0)
+                    self.assertEqual(
+                        len(trace["livraisons"]),
+                        len(scenario["demandes"]),
+                    )
+                    self.assertNotIn(
+                        "agent non implemente",
+                        {
+                            livraison["motif_echec"]
+                            for livraison in trace["livraisons"]
+                        },
+                    )
 
 
 if __name__ == "__main__":

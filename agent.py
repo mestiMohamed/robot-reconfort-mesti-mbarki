@@ -5,9 +5,10 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from armoire import classer_casiers, determiner_repli, mouvements_selecteur
 from base_fournie import reconfort_io as rio
 from environnement import Environnement
-from navigation import Navigateur, rejoindre
+from navigation import DestinationInaccessible, Navigateur, rejoindre
 from validation import valider_entrees
 
 
@@ -70,62 +71,202 @@ def main(argv: list[str]) -> int:
         nom_scenario=scenario["nom"],
         equipe=["Mohammed M'BARKI", "Mohamed Mesti"],
     )
-    environnement = Environnement(carte)
+    environnement = Environnement(carte, armoire)
     navigateur = Navigateur(environnement.informations_initiales())
     index_dictionnaire = indexer_dictionnaire(dictionnaire)
-    casier = tuple(armoire["casier_depart"])
+    informations_armoire = environnement.informations_armoire()
+    emotions = informations_armoire["emotions"]
+    intensites = informations_armoire["intensites"]
     position_dictionnaire = carte["dictionnaire"]["position"]
+    position_armoire = carte["armoire"]["position"]
+    positions_residents = {
+        resident["id"]: resident["position"]
+        for resident in carte["residents"]
+    }
 
-    for demande in scenario["demandes"]:
-        numero = demande["numero"]
+    def contenu_visible():
+        if "armoire" in environnement.percevoir().values():
+            return environnement.contenu_casier()
+        return None
 
-        def journaliser_deplacement(position, perception, direction):
+    def journaliser_deplacement(numero):
+        def journaliser(position, perception, direction):
             trace.ajouter_pas(
                 demande=numero,
                 position=position,
-                casier=casier,
+                casier=environnement.casier_courant,
                 action="AVANCER",
                 argument=direction,
                 perception=perception,
+                contenu_casier=contenu_visible(),
             )
+
+        return journaliser
+
+    for demande in scenario["demandes"]:
+        numero = demande["numero"]
 
         rejoindre(
             navigateur,
             position_dictionnaire,
             environnement.percevoir,
             environnement.avancer,
-            journaliser_deplacement,
+            journaliser_deplacement(numero),
         )
 
         perception = environnement.percevoir()
         trace.ajouter_pas(
             demande=numero,
             position=navigateur.position,
-            casier=casier,
+            casier=environnement.casier_courant,
             action="CONSULTER",
             perception=perception,
+            contenu_casier=contenu_visible(),
         )
         environnement.consulter()
         resultat = lire_emotion(demande["message"], index_dictionnaire)
 
         if resultat is None:
-            emotion = None
-            intensite = None
-            motif_echec = "emotion indeterminee"
-        else:
-            emotion, intensite = resultat
-            motif_echec = "agent non implemente"
+            trace.ajouter_livraison(
+                demande=numero,
+                resident=demande["resident"],
+                emotion=None,
+                intensite=None,
+                casier_choisi=None,
+                repli="aucun",
+                objet=None,
+                succes=False,
+                motif_echec="emotion indeterminee",
+            )
+            continue
 
+        emotion, intensite = resultat
+        rejoindre(
+            navigateur,
+            position_armoire,
+            environnement.percevoir,
+            environnement.avancer,
+            journaliser_deplacement(numero),
+        )
+
+        candidats = classer_casiers(
+            emotion,
+            intensite,
+            emotions,
+            intensites,
+        )
+        casier_choisi = None
+        objet = None
+        for candidat in candidats:
+            mouvements = mouvements_selecteur(
+                environnement.casier_courant,
+                candidat,
+                len(emotions),
+            )
+            for direction in mouvements:
+                perception = environnement.percevoir()
+                trace.ajouter_pas(
+                    demande=numero,
+                    position=navigateur.position,
+                    casier=environnement.casier_courant,
+                    action="CHERCHER",
+                    argument=direction,
+                    perception=perception,
+                    contenu_casier=environnement.contenu_casier(),
+                )
+                environnement.chercher(direction)
+
+            objet_courant = environnement.contenu_casier()
+            if objet_courant is not None:
+                perception = environnement.percevoir()
+                trace.ajouter_pas(
+                    demande=numero,
+                    position=navigateur.position,
+                    casier=environnement.casier_courant,
+                    action="PRENDRE",
+                    argument=objet_courant,
+                    perception=perception,
+                    contenu_casier=objet_courant,
+                )
+                environnement.prendre(objet_courant)
+                casier_choisi = candidat
+                objet = objet_courant
+                break
+
+            trace.ajouter_pas(
+                demande=numero,
+                position=navigateur.position,
+                casier=environnement.casier_courant,
+                action="ATTENDRE",
+                perception=environnement.percevoir(),
+                contenu_casier=None,
+                commentaire="casier candidat vide",
+            )
+
+        if objet is None:
+            trace.ajouter_livraison(
+                demande=numero,
+                resident=demande["resident"],
+                emotion=emotion,
+                intensite=intensite,
+                casier_choisi=None,
+                repli="aucun",
+                objet=None,
+                succes=False,
+                motif_echec="armoire vide",
+            )
+            continue
+
+        position_resident = positions_residents[demande["resident"]]
+        try:
+            rejoindre(
+                navigateur,
+                position_resident,
+                environnement.percevoir,
+                environnement.avancer,
+                journaliser_deplacement(numero),
+            )
+        except DestinationInaccessible:
+            trace.ajouter_livraison(
+                demande=numero,
+                resident=demande["resident"],
+                emotion=emotion,
+                intensite=intensite,
+                casier_choisi=casier_choisi,
+                repli=determiner_repli(
+                    (intensites.index(intensite), emotions.index(emotion)),
+                    casier_choisi,
+                    emotions,
+                ),
+                objet=objet,
+                succes=False,
+                motif_echec="resident inaccessible",
+            )
+            continue
+
+        trace.ajouter_pas(
+            demande=numero,
+            position=navigateur.position,
+            casier=environnement.casier_courant,
+            action="DONNER",
+            argument=objet,
+            perception=environnement.percevoir(),
+            contenu_casier=contenu_visible(),
+        )
+        environnement.donner(objet, position_resident)
         trace.ajouter_livraison(
             demande=numero,
             resident=demande["resident"],
             emotion=emotion,
             intensite=intensite,
-            casier_choisi=None,
-            repli="aucun",
-            objet=None,
-            succes=False,
-            motif_echec=motif_echec,
+            casier_choisi=casier_choisi,
+            repli=determiner_repli(
+                (intensites.index(intensite), emotions.index(emotion)),
+                casier_choisi,
+                emotions,
+            ),
+            objet=objet,
+            succes=True,
         )
 
     trace.ecrire(chemin_trace)
