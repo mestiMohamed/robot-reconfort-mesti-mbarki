@@ -1,8 +1,12 @@
 """Tests de la décision et des actions liées à l'armoire."""
 
+from copy import deepcopy
+import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
+from agent import main
 from armoire import classer_casiers, determiner_repli, mouvements_selecteur
 from base_fournie import reconfort_io as rio
 from environnement import ActionImpossible, Environnement
@@ -110,6 +114,98 @@ class TestsActionsArmoire(unittest.TestCase):
         )
         self.environnement.donner(objet, position_resident)
         self.assertIsNone(self.environnement.objet_transporte)
+
+
+class TestsReplisComplets(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.carte = BASE / "cartes" / "appartement_01.json"
+        cls.dictionnaire = json.loads(
+            (BASE / "donnees" / "dictionnaire.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        cls.armoire = json.loads(
+            (BASE / "donnees" / "armoire_standard.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+    def executer(self, objets):
+        armoire = deepcopy(self.armoire)
+        for casier in armoire["casiers"]:
+            position = (casier["ligne"], casier["colonne"])
+            casier["objet"] = objets.get(position)
+
+        scenario = {
+            "format": "robot-reconfort/scenario",
+            "version": 1,
+            "nom": "scenario_repli",
+            "carte": "appartement_01",
+            "armoire": "armoire_standard",
+            "demandes": [
+                {
+                    "numero": 1,
+                    "resident": "R1",
+                    "message": "Je suis triste.",
+                }
+            ],
+        }
+
+        with TemporaryDirectory(dir=RACINE / "tests") as dossier:
+            dossier = Path(dossier)
+            donnees = dossier / "donnees"
+            donnees.mkdir()
+            (donnees / "dictionnaire.json").write_text(
+                json.dumps(self.dictionnaire, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (donnees / "armoire_standard.json").write_text(
+                json.dumps(armoire, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            chemin_scenario = dossier / "scenario.json"
+            chemin_scenario.write_text(
+                json.dumps(scenario, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            sortie = dossier / "trace.json"
+            code = main(
+                [
+                    "agent.py",
+                    str(self.carte),
+                    str(chemin_scenario),
+                    str(donnees),
+                    str(sortie),
+                ]
+            )
+            trace = json.loads(sortie.read_text(encoding="utf-8"))
+        self.assertEqual(code, 0)
+        return trace["livraisons"][0]
+
+    def test_casier_exact(self):
+        livraison = self.executer({(1, 4): "objet exact"})
+        self.assertTrue(livraison["succes"])
+        self.assertEqual(livraison["casier_choisi"], [1, 4])
+        self.assertEqual(livraison["repli"], "aucun")
+
+    def test_repli_intensite(self):
+        livraison = self.executer({(0, 4): "objet faible"})
+        self.assertTrue(livraison["succes"])
+        self.assertEqual(livraison["casier_choisi"], [0, 4])
+        self.assertEqual(livraison["repli"], "intensite")
+
+    def test_repli_emotion_voisine(self):
+        livraison = self.executer({(1, 5): "objet voisin"})
+        self.assertTrue(livraison["succes"])
+        self.assertEqual(livraison["casier_choisi"], [1, 5])
+        self.assertEqual(livraison["repli"], "voisine_1")
+
+    def test_aucun_casier_garni_a_distance_deux(self):
+        livraison = self.executer({(1, 0): "objet interdit"})
+        self.assertFalse(livraison["succes"])
+        self.assertEqual(livraison["motif_echec"], "armoire vide")
+        self.assertIsNone(livraison["casier_choisi"])
 
 
 if __name__ == "__main__":

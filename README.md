@@ -1,5 +1,6 @@
 # Robot de réconfort
-# Réalisé par Mohammed M'BARKI et Mohamed MESTI
+
+Réalisé par Mohammed M'BARKI et Mohamed MESTI.
 
 Projet du module HAI716 - Programmation orientée agents et systèmes
 multi-agents.
@@ -36,7 +37,7 @@ plusieurs robots capables de se coordonner.
 ## Exécution
 
 ```bash
-python3 agent.py \
+python agent.py \
   base_fournie/cartes/appartement_01.json \
   base_fournie/cartes/scenario_01.json \
   base_fournie/donnees \
@@ -46,13 +47,13 @@ python3 agent.py \
 ## Tester
 
 ```bash
-python3 -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
 ## Démonstration de la navigation
 
 ```bash
-python3 demo_navigation.py base_fournie/cartes/appartement_01.json
+python demo_navigation.py base_fournie/cartes/appartement_01.json
 ```
 
 L'option `--animer` affiche la carte mentale après chaque déplacement.
@@ -61,7 +62,7 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 
 | Fichier | Rôle |
 |---|---|
-| `agent.py` | point d'entrée, navigation et consultation du dictionnaire |
+| `agent.py` | point d'entrée et boucle complète de traitement |
 | `environnement.py` | validation, état réel, perceptions et déplacements |
 | `navigation.py` | carte mentale, BFS et replanification |
 | `armoire.py` | ordre des candidats, replis et trajets du sélecteur |
@@ -69,6 +70,7 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 | `demo_navigation.py` | démonstration autonome de la navigation |
 | `base_fournie/reconfort_io.py` | lecture des entrées et écriture de la trace |
 | `tests/` | tests automatisés du dictionnaire et de la navigation |
+| `rendu.json` | commande utilisée pour l'évaluation automatique |
 
 ## État actuel
 
@@ -79,3 +81,10 @@ le livre au résident. Chaque action et chaque perception sont journalisées.
 La navigation locale fonctionne sur les cinq cartes fournies : le robot
 construit une carte mentale, calcule un chemin avec un parcours en largeur et
 replanifie lorsqu'il découvre un mur.
+
+## Limites connues
+
+La stratégie recalcule un BFS complet après chaque perception. Elle privilégie
+la simplicité et la robustesse plutôt que l'optimisation du nombre de calculs.
+La fouille visite les candidats dans l'ordre imposé sans optimiser les
+allers-retours du sélecteur entre plusieurs candidats vides.

@@ -1,0 +1,9 @@
+{
+  "format": "robot-reconfort/rendu",
+  "version": 1,
+  "equipe": ["Mohammed M'BARKI", "Mohamed MESTI"],
+  "langage": "Python 3.9+",
+  "preparation": [],
+  "commande": ["python", "agent.py"],
+  "video": "demo.mp4"
+}
