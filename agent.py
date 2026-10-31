@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from base_fournie import reconfort_io as rio
+from environnement import Environnement
+from navigation import Navigateur, rejoindre
 from validation import valider_entrees
 
 
@@ -35,7 +37,7 @@ def lire_emotion(
 
 
 def main(argv: list[str]) -> int:
-    """Charge les entrees et produit une trace minimale de demarrage."""
+    """Charge les entrées et traite chaque demande dans l'ordre."""
     if len(argv) != 5:
         print(
             "usage : python3 agent.py <carte> <scenario> "
@@ -66,31 +68,68 @@ def main(argv: list[str]) -> int:
     trace = rio.Trace(
         nom_carte=carte["nom"],
         nom_scenario=scenario["nom"],
-        equipe=["A completer", "A completer"],
+        equipe=["Mohammed M'BARKI", "Mohamed Mesti"],
     )
+    environnement = Environnement(carte)
+    navigateur = Navigateur(environnement.informations_initiales())
+    index_dictionnaire = indexer_dictionnaire(dictionnaire)
+    casier = tuple(armoire["casier_depart"])
+    position_dictionnaire = carte["dictionnaire"]["position"]
 
     for demande in scenario["demandes"]:
-        trace.ajouter_pas(
-            demande=demande["numero"],
-            position=carte["depart_robot"],
-            casier=armoire["casier_depart"],
-            action="ATTENDRE",
-            commentaire="premier jalon : entrees chargees",
+        numero = demande["numero"]
+
+        def journaliser_deplacement(position, perception, direction):
+            trace.ajouter_pas(
+                demande=numero,
+                position=position,
+                casier=casier,
+                action="AVANCER",
+                argument=direction,
+                perception=perception,
+            )
+
+        rejoindre(
+            navigateur,
+            position_dictionnaire,
+            environnement.percevoir,
+            environnement.avancer,
+            journaliser_deplacement,
         )
+
+        perception = environnement.percevoir()
+        trace.ajouter_pas(
+            demande=numero,
+            position=navigateur.position,
+            casier=casier,
+            action="CONSULTER",
+            perception=perception,
+        )
+        environnement.consulter()
+        resultat = lire_emotion(demande["message"], index_dictionnaire)
+
+        if resultat is None:
+            emotion = None
+            intensite = None
+            motif_echec = "emotion indeterminee"
+        else:
+            emotion, intensite = resultat
+            motif_echec = "agent non implemente"
+
         trace.ajouter_livraison(
-            demande=demande["numero"],
+            demande=numero,
             resident=demande["resident"],
-            emotion=None,
-            intensite=None,
+            emotion=emotion,
+            intensite=intensite,
             casier_choisi=None,
             repli="aucun",
             objet=None,
             succes=False,
-            motif_echec="agent non implemente",
+            motif_echec=motif_echec,
         )
 
     trace.ecrire(chemin_trace)
-    print(f"entrees chargees, trace ecrite : {chemin_trace}")
+    print(f"trace écrite : {chemin_trace}")
     return 0
 
 

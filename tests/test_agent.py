@@ -1,7 +1,9 @@
 import unittest
+import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from agent import indexer_dictionnaire, lire_emotion
+from agent import indexer_dictionnaire, lire_emotion, main
 from base_fournie import reconfort_io as rio
 from environnement import ActionImpossible, Environnement
 
@@ -136,6 +138,30 @@ class TestDeplacement(unittest.TestCase):
 
         self.assertEqual(environnement.position_robot, (1, 1))
 
+    def test_consulter_uniquement_devant_le_dictionnaire(self) -> None:
+        carte = fabriquer_carte(
+            [
+                "#####",
+                "#PRD#",
+                "#.A.#",
+                "#####",
+            ]
+        )
+        environnement = Environnement(carte)
+        environnement.consulter()
+
+        carte_eloignee = fabriquer_carte(
+            [
+                "#######",
+                "#R..AD#",
+                "#...P.#",
+                "#######",
+            ]
+        )
+        environnement = Environnement(carte_eloignee)
+        with self.assertRaises(ActionImpossible):
+            environnement.consulter()
+
 
 class TestLectureEmotion(unittest.TestCase):
     @classmethod
@@ -176,6 +202,49 @@ class TestLectureEmotion(unittest.TestCase):
             self.index_dictionnaire,
         )
         self.assertIsNone(resultat)
+
+
+class TestIntegrationDictionnaire(unittest.TestCase):
+    def test_agent_navigue_et_consulte_pour_chaque_demande(self) -> None:
+        racine = Path(__file__).resolve().parents[1]
+        base = racine / "base_fournie"
+        with TemporaryDirectory(dir=racine / "tests") as dossier:
+            sortie = Path(dossier) / "trace.json"
+            code = main(
+                [
+                    "agent.py",
+                    str(base / "cartes" / "appartement_01.json"),
+                    str(base / "cartes" / "scenario_01.json"),
+                    str(base / "donnees"),
+                    str(sortie),
+                ]
+            )
+            trace = json.loads(sortie.read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            trace["equipe"],
+            ["Mohammed M'BARKI", "Mohamed Mesti"],
+        )
+        consultations = [
+            pas for pas in trace["pas"] if pas["action"] == "CONSULTER"
+        ]
+        self.assertEqual(len(consultations), 4)
+        self.assertNotIn("ATTENDRE", {pas["action"] for pas in trace["pas"]})
+
+        for pas in trace["pas"]:
+            if pas["action"] == "AVANCER":
+                self.assertEqual(
+                    pas["perception"][pas["argument"]],
+                    "libre",
+                )
+            elif pas["action"] == "CONSULTER":
+                self.assertIn("dictionnaire", pas["perception"].values())
+
+        self.assertEqual(
+            [livraison["emotion"] for livraison in trace["livraisons"]],
+            ["tristesse", "peur", "colere", "joie"],
+        )
 
 
 if __name__ == "__main__":

@@ -201,6 +201,14 @@ class Environnement:
         self._position_robot = (ligne, colonne)
         return self._position_robot
 
+    def consulter(self) -> None:
+        """Autorise CONSULTER uniquement à côté du dictionnaire."""
+        if "dictionnaire" not in self.percevoir().values():
+            raise ActionImpossible(
+                "consultation impossible : le robot n'est pas adjacent "
+                "au dictionnaire"
+            )
+
     def _position_voisine(self, direction: str) -> Position:
         """Calcule la position voisine dans une direction valide."""
         if direction not in self._DEPLACEMENTS:

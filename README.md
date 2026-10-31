@@ -61,7 +61,7 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 
 | Fichier | Rôle |
 |---|---|
-| `agent.py` | point d'entrée et premier traitement du dictionnaire |
+| `agent.py` | point d'entrée, navigation et consultation du dictionnaire |
 | `environnement.py` | validation, état réel, perceptions et déplacements |
 | `navigation.py` | carte mentale, BFS et replanification |
 | `validation.py` | validation et cohérence des quatre entrées JSON |
@@ -71,9 +71,9 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 
 ## État actuel
 
-Le point d'entrée charge les fichiers du projet et produit une première
-trace minimale. La navigation locale fonctionne sur les cinq cartes fournies :
-le robot construit une carte mentale, calcule un chemin avec un parcours en
-largeur et replanifie lorsqu'il découvre un mur. Cette navigation doit encore
-être intégrée à la boucle complète de traitement des demandes. Les quatre
-fichiers d'entrée sont validés avant toute création de trace.
+Le point d'entrée valide les quatre fichiers, construit l'environnement et
+traite les demandes dans l'ordre. Le robot rejoint réellement le dictionnaire,
+journalise chaque déplacement et exécute `CONSULTER`. La navigation locale
+fonctionne sur les cinq cartes fournies : le robot construit une carte mentale,
+calcule un chemin avec un parcours en largeur et replanifie lorsqu'il découvre
+un mur. La fouille de l'armoire et la livraison restent à intégrer.
