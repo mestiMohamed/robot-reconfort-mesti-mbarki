@@ -64,6 +64,7 @@ L'option `--animer` affiche la carte mentale après chaque déplacement.
 | `agent.py` | point d'entrée et premier traitement du dictionnaire |
 | `environnement.py` | validation, état réel, perceptions et déplacements |
 | `navigation.py` | carte mentale, BFS et replanification |
+| `validation.py` | validation et cohérence des quatre entrées JSON |
 | `demo_navigation.py` | démonstration autonome de la navigation |
 | `base_fournie/reconfort_io.py` | lecture des entrées et écriture de la trace |
 | `tests/` | tests automatisés du dictionnaire et de la navigation |
@@ -74,4 +75,5 @@ Le point d'entrée charge les fichiers du projet et produit une première
 trace minimale. La navigation locale fonctionne sur les cinq cartes fournies :
 le robot construit une carte mentale, calcule un chemin avec un parcours en
 largeur et replanifie lorsqu'il découvre un mur. Cette navigation doit encore
-être intégrée à la boucle complète de traitement des demandes.
+être intégrée à la boucle complète de traitement des demandes. Les quatre
+fichiers d'entrée sont validés avant toute création de trace.

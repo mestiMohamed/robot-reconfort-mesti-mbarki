@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from base_fournie import reconfort_io as rio
+from validation import valider_entrees
 
 
 Emotion = Tuple[str, str]
@@ -51,10 +52,13 @@ def main(argv: list[str]) -> int:
     try:
         carte = rio.charger_carte(chemin_carte)
         scenario = rio.charger_scenario(chemin_scenario)
-        rio.charger_dictionnaire(dossier_donnees / "dictionnaire.json")
+        dictionnaire = rio.charger_dictionnaire(
+            dossier_donnees / "dictionnaire.json"
+        )
         armoire = rio.charger_armoire(
             dossier_donnees / f"{scenario['armoire']}.json"
         )
+        valider_entrees(carte, scenario, dictionnaire, armoire)
     except rio.ErreurFichier as erreur:
         print(f"erreur de chargement : {erreur}", file=sys.stderr)
         return 1

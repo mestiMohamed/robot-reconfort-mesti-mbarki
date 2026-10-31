@@ -15,6 +15,14 @@ def fabriquer_carte(lignes):
             "hauteur": len(lignes),
             "largeur": len(lignes[0]),
         },
+        "legende": {
+            "#": "mur",
+            ".": "libre",
+            "R": "depart",
+            "A": "armoire",
+            "D": "dictionnaire",
+            "P": "resident",
+        },
         "grille": lignes,
         "residents": [],
     }

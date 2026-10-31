@@ -25,6 +25,14 @@ def fabriquer_carte(lignes):
             "hauteur": len(lignes),
             "largeur": len(lignes[0]),
         },
+        "legende": {
+            "#": "mur",
+            ".": "libre",
+            "R": "depart",
+            "A": "armoire",
+            "D": "dictionnaire",
+            "P": "resident",
+        },
         "grille": lignes,
         "residents": [],
     }
@@ -376,6 +384,7 @@ class TestsValidationCarte(unittest.TestCase):
             ("version booléenne", lambda c: c.update(version=True), "version"),
             ("champ absent", lambda c: c.pop("dimensions"), "dimensions"),
             ("nom invalide", lambda c: c.update(nom=5), "nom"),
+            ("légende absente", lambda c: c.pop("legende"), "légende"),
             (
                 "dimension invalide",
                 lambda c: c["dimensions"].update(largeur=True),

@@ -31,6 +31,15 @@ def valider_carte(carte: dict) -> None:
     if not isinstance(carte.get("nom"), str) or not carte["nom"]:
         raise rio.ErreurFichier("carte : nom absent ou invalide")
 
+    legende = carte.get("legende")
+    symboles_attendus = set("#.RADP")
+    if (
+        not isinstance(legende, dict)
+        or set(legende) != symboles_attendus
+        or any(not isinstance(description, str) for description in legende.values())
+    ):
+        raise rio.ErreurFichier("carte : légende absente ou invalide")
+
     dimensions = carte.get("dimensions")
     if not isinstance(dimensions, dict):
         raise rio.ErreurFichier("carte : dimensions absentes ou invalides")
