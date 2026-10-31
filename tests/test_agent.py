@@ -6,6 +6,36 @@ from base_fournie import reconfort_io as rio
 from environnement import ActionImpossible, Environnement
 
 
+def fabriquer_carte(lignes):
+    carte = {
+        "format": "robot-reconfort/carte",
+        "version": 1,
+        "nom": "test_agent",
+        "dimensions": {
+            "hauteur": len(lignes),
+            "largeur": len(lignes[0]),
+        },
+        "grille": lignes,
+        "residents": [],
+    }
+    for ligne, contenu in enumerate(lignes):
+        for colonne, symbole in enumerate(contenu):
+            if symbole == "R":
+                carte["depart_robot"] = [ligne, colonne]
+            elif symbole in "AD":
+                champ = "armoire" if symbole == "A" else "dictionnaire"
+                carte[champ] = {"position": [ligne, colonne]}
+            elif symbole == "P":
+                carte["residents"].append(
+                    {
+                        "id": "R1",
+                        "nom": "Résident",
+                        "position": [ligne, colonne],
+                    }
+                )
+    return carte
+
+
 class TestPerception(unittest.TestCase):
     def test_perception_au_depart_de_la_carte_fournie(self) -> None:
         chemin = (
@@ -25,15 +55,14 @@ class TestPerception(unittest.TestCase):
         )
 
     def test_perception_des_elements_non_traversables(self) -> None:
-        carte = {
-            "grille": [
+        carte = fabriquer_carte(
+            [
                 "#####",
                 "#PRD#",
                 "#.A.#",
                 "#####",
-            ],
-            "depart_robot": [1, 2],
-        }
+            ]
+        )
 
         environnement = Environnement(carte)
 
@@ -50,14 +79,14 @@ class TestPerception(unittest.TestCase):
 
 class TestDeplacement(unittest.TestCase):
     def test_avancer_vers_une_case_libre(self) -> None:
-        carte = {
-            "grille": [
-                "#####",
-                "#R..#",
-                "#####",
-            ],
-            "depart_robot": [1, 1],
-        }
+        carte = fabriquer_carte(
+            [
+                "#######",
+                "#R..AD#",
+                "#...P.#",
+                "#######",
+            ]
+        )
         environnement = Environnement(carte)
 
         environnement.avancer("E")
@@ -65,15 +94,14 @@ class TestDeplacement(unittest.TestCase):
         self.assertEqual(environnement.position_robot, (1, 2))
 
     def test_refuser_les_cases_non_traversables(self) -> None:
-        carte = {
-            "grille": [
+        carte = fabriquer_carte(
+            [
                 "#####",
                 "#PRD#",
                 "#.A.#",
                 "#####",
-            ],
-            "depart_robot": [1, 2],
-        }
+            ]
+        )
 
         for direction in ("N", "S", "E", "O"):
             with self.subTest(direction=direction):
@@ -85,14 +113,14 @@ class TestDeplacement(unittest.TestCase):
                 self.assertEqual(environnement.position_robot, (1, 2))
 
     def test_refuser_une_direction_inconnue(self) -> None:
-        carte = {
-            "grille": [
-                "#####",
-                "#R..#",
-                "#####",
-            ],
-            "depart_robot": [1, 1],
-        }
+        carte = fabriquer_carte(
+            [
+                "#######",
+                "#R..AD#",
+                "#...P.#",
+                "#######",
+            ]
+        )
         environnement = Environnement(carte)
 
         with self.assertRaisesRegex(ValueError, "direction inconnue"):

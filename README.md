@@ -49,19 +49,29 @@ python3 agent.py \
 python3 -m unittest discover -s tests -v
 ```
 
+## Démonstration de la navigation
+
+```bash
+python3 demo_navigation.py base_fournie/cartes/appartement_01.json
+```
+
+L'option `--animer` affiche la carte mentale après chaque déplacement.
+
 ## Organisation actuelle
 
 | Fichier | Rôle |
 |---|---|
 | `agent.py` | point d'entrée et premier traitement du dictionnaire |
-| `environnement.py` | état réel de la carte et perceptions locales |
+| `environnement.py` | validation, état réel, perceptions et déplacements |
+| `navigation.py` | carte mentale, BFS et replanification |
+| `demo_navigation.py` | démonstration autonome de la navigation |
 | `base_fournie/reconfort_io.py` | lecture des entrées et écriture de la trace |
-| `tests/test_agent.py` | tests automatisés des fonctionnalités disponibles |
+| `tests/` | tests automatisés du dictionnaire et de la navigation |
 
 ## État actuel
 
 Le point d'entrée charge les fichiers du projet et produit une première
-trace minimale. L'environnement sait maintenant fournir les quatre
-perceptions locales sans exposer la grille complète à l'agent. Il peut aussi
-exécuter un déplacement vers une case libre et refuse les déplacements
-illégaux. Le comportement autonome du robot est en cours de développement.
+trace minimale. La navigation locale fonctionne sur les cinq cartes fournies :
+le robot construit une carte mentale, calcule un chemin avec un parcours en
+largeur et replanifie lorsqu'il découvre un mur. Cette navigation doit encore
+être intégrée à la boucle complète de traitement des demandes.
